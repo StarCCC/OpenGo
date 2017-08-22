@@ -5,4 +5,7 @@ package com.opengo.opengoapp.frame.units;
  * Created by StarCCC on 2017/8/21.
  */
 public class SystemConfig {
+
+    //棋盘大小
+    public static final int BOARD_SIZE = 19;
 }
