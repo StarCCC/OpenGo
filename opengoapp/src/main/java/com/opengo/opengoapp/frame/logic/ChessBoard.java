@@ -2,7 +2,6 @@ package com.opengo.opengoapp.frame.logic;
 
 import com.opengo.opengoapp.frame.enums.Chess;
 import com.opengo.opengoapp.frame.units.SystemConfig;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -16,6 +15,10 @@ public class ChessBoard {
 
     //棋盘
     private Chess[][] chessBoard;
+
+    //同形棋盘，分黑白
+    private Chess[][] blackLastBoard;
+    private Chess[][] whiteLastBoard;
 
     //手数
     private int nowStep;
@@ -84,6 +87,28 @@ public class ChessBoard {
             }
             return new Location(x, y + 1);
         }
+
+        //获取一个包含上下左右四个点的List
+        public List<Location> getNextLocationList() {
+            List<Location> r = new ArrayList<Location>();
+            Location next = this.getUp();
+            if (next != null) {
+                r.add(next);
+            }
+            next = this.getDown();
+            if (next != null) {
+                r.add(next);
+            }
+            next = this.getRight();
+            if (next != null) {
+                r.add(next);
+            }
+            next = this.getLeft();
+            if (next != null) {
+                r.add(next);
+            }
+            return r;
+        }
     }
 
     private static final ChessBoard INSTANCE = new ChessBoard();
@@ -105,6 +130,8 @@ public class ChessBoard {
         for (int i = 0; i < BOARD_SIZE ; i++) {
             for (int j = 0; j < BOARD_SIZE ; j++) {
                 chessBoard[i][j] = Chess.EMPTY;
+                blackLastBoard[i][j] = Chess.EMPTY;
+                whiteLastBoard[i][j] = Chess.EMPTY;
             }
         }
         //手数归零
@@ -113,8 +140,8 @@ public class ChessBoard {
 
     /**
      * 棋盘复制函数，从源棋盘到目标棋盘
-     * @param cbSource
-     * @param cbTarget
+     * @param cbSource  源
+     * @param cbTarget  目标
      */
     private void copyChessBoard(Chess[][] cbSource, Chess[][] cbTarget) {
         for (int i = 0; i < BOARD_SIZE ; i++) {
@@ -125,9 +152,26 @@ public class ChessBoard {
     }
 
     /**
+     * 判断两棋盘是否相同
+     * @param aBoard
+     * @param bBoard
+     * @return  Boolean
+     */
+    private Boolean isSameChessBoard(Chess[][] aBoard, Chess[][] bBoard) {
+        for (int i = 0; i < BOARD_SIZE ; i++) {
+            for (int j = 0; j < BOARD_SIZE; j++) {
+                if (aBoard[i][j] != bBoard[i][j]) {
+                    return Boolean.FALSE;
+                }
+            }
+        }
+        return Boolean.TRUE;
+    }
+
+    /**
      * 计算当前位置棋串的气
-     * @param p
-     * @return
+     * @param p 位置
+     * @return int 气数
      */
     private int countLiberty(Location p) {
         int liberty = 0;
@@ -171,14 +215,37 @@ public class ChessBoard {
 
     /**
      * 获取当前位置棋子
-     * @param p
-     * @return
+     * @param p 棋子位置
+     * @return Chess
      */
     private Chess getChessFromBoard(Location p) {
         return chessBoard[p.getX()][p.getY()];
     }
 
+    /**
+     * 当前位置的棋子是否提子
+     * @param p 位置
+     * @return Boolean  true=有提子  false=不能提子
+     */
+    private Boolean isTakeChess(Location p) {
+        List<Location> next = p.getNextLocationList();
+        for (int i = 0; i < next.size(); i++) {
+            if (countLiberty(next.get(i)) == 0) {
+                return Boolean.TRUE;
+            }
+        }
+        return Boolean.FALSE;
+    }
 
-
-
+    /**
+     * 当前位置是否为禁入点
+     * @param p  位置
+     * @return Boolean
+     */
+    private Boolean isBanPoint(Location p) {
+        if (countLiberty(p) == 0 && !isTakeChess(p)) {
+            return Boolean.TRUE;
+        }
+        return Boolean.FALSE;
+    }
 }
