@@ -169,7 +169,7 @@ public class ChessBoard {
     }
 
     /**
-     * 计算当前位置棋串的气
+     * 计算当前位置棋串的气（有问题需解决）
      * @param p 位置
      * @return int 气数
      */
