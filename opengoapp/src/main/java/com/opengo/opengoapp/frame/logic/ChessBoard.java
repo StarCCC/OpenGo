@@ -180,9 +180,11 @@ public class ChessBoard {
             return liberty;
         }
 
+        //创建棋串位置列表，并把当前位置放进去
         List<Location> locations = new ArrayList<Location>();
         locations.add(p);
 
+        //遍历一遍列表，对每个棋子的上下左右的位置检测，是空则气数加一，颜色相同则
         int i = 0;
         while (locations.size() > 0){
             Location loc = null;
