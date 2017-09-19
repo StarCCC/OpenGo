@@ -14,102 +14,17 @@ import java.util.List;
 public class ChessBoard {
 
     //棋盘
-    private Chess[][] chessBoard;
+    private Board chessBoard;
 
     //同形棋盘，分黑白
-    private Chess[][] blackLastBoard;
-    private Chess[][] whiteLastBoard;
+    private Board blackLastBoard;
+    private Board whiteLastBoard;
 
     //手数
     private int nowStep;
 
     //棋盘大小
-    private final int BOARD_SIZE = SystemConfig.BOARD_SIZE;
-
-    //坐标
-    private class Location {
-        private int x;//x轴
-        private int y;//y轴
-
-        public Location() {
-            this(0, 0);
-        }
-
-        public Location(int x, int y) {
-            this.x = x;
-            this.y = y;
-        }
-
-        public int getX() {
-            return x;
-        }
-
-        public void setX(int x) {
-            this.x = x;
-        }
-
-        public int getY() {
-            return y;
-        }
-
-        public void setY(int y) {
-            this.y = y;
-        }
-
-        //获取上面邻接点坐标，没有返回null
-        public Location getUp() {
-            if (x <= 0) {
-                return null;
-            }
-            return new Location(x - 1, y);
-        }
-
-        //获取下面邻接点坐标，没有返回null
-        public Location getDown() {
-            if (x >= 18) {
-                return null;
-            }
-            return new Location(x + 1, y);
-        }
-
-        //获取左面邻接点坐标，没有返回null
-        public Location getLeft() {
-            if (y <= 0) {
-                return null;
-            }
-            return new Location(x, y - 1);
-        }
-
-        //获取右面邻接点坐标，没有返回null
-        public Location getRight() {
-            if (y >= 18) {
-                return null;
-            }
-            return new Location(x, y + 1);
-        }
-
-        //获取一个包含上下左右四个点的List
-        public List<Location> getNextLocationList() {
-            List<Location> r = new ArrayList<Location>();
-            Location next = this.getUp();
-            if (next != null) {
-                r.add(next);
-            }
-            next = this.getDown();
-            if (next != null) {
-                r.add(next);
-            }
-            next = this.getRight();
-            if (next != null) {
-                r.add(next);
-            }
-            next = this.getLeft();
-            if (next != null) {
-                r.add(next);
-            }
-            return r;
-        }
-    }
+    private  final int BOARD_SIZE = SystemConfig.BOARD_SIZE;
 
     private static final ChessBoard INSTANCE = new ChessBoard();
 
@@ -118,7 +33,9 @@ public class ChessBoard {
     }
 
     public ChessBoard() {
-        chessBoard = new Chess[BOARD_SIZE][BOARD_SIZE];
+        chessBoard = new Board();
+        blackLastBoard = new Board();
+        whiteLastBoard = new Board();
         initChessBoard();
     }
 
@@ -127,55 +44,21 @@ public class ChessBoard {
      */
     private void initChessBoard() {
         //棋盘置空
-        for (int i = 0; i < BOARD_SIZE ; i++) {
-            for (int j = 0; j < BOARD_SIZE ; j++) {
-                chessBoard[i][j] = Chess.EMPTY;
-                blackLastBoard[i][j] = Chess.EMPTY;
-                whiteLastBoard[i][j] = Chess.EMPTY;
-            }
-        }
+        chessBoard.init();
+        blackLastBoard.init();
+        whiteLastBoard.init();
         //手数归零
         nowStep = 0;
     }
 
     /**
-     * 棋盘复制函数，从源棋盘到目标棋盘
-     * @param cbSource  源
-     * @param cbTarget  目标
-     */
-    private void copyChessBoard(Chess[][] cbSource, Chess[][] cbTarget) {
-        for (int i = 0; i < BOARD_SIZE ; i++) {
-            for (int j = 0; j < BOARD_SIZE ; j++) {
-                cbTarget[i][j] = cbSource[i][j];
-            }
-        }
-    }
-
-    /**
-     * 判断两棋盘是否相同
-     * @param aBoard
-     * @param bBoard
-     * @return  Boolean
-     */
-    private Boolean isSameChessBoard(Chess[][] aBoard, Chess[][] bBoard) {
-        for (int i = 0; i < BOARD_SIZE ; i++) {
-            for (int j = 0; j < BOARD_SIZE; j++) {
-                if (aBoard[i][j] != bBoard[i][j]) {
-                    return Boolean.FALSE;
-                }
-            }
-        }
-        return Boolean.TRUE;
-    }
-
-    /**
-     * 计算当前位置棋串的气（有问题需解决）
+     * 计算当前位置棋串的气
      * @param p 位置
      * @return int 气数
      */
     private int countLiberty(Location p) {
         int liberty = 0;
-        Chess color = getChessFromBoard(p);
+        Chess color = chessBoard.getChess(p);
         if (color == Chess.EMPTY) {
             return liberty;
         }
@@ -183,8 +66,10 @@ public class ChessBoard {
         //创建棋串位置列表，并把当前位置放进去
         List<Location> locations = new ArrayList<Location>();
         locations.add(p);
+        //创建已遍历位置列表
+        List<Location> done = new ArrayList<Location>();
 
-        //遍历一遍列表，对每个棋子的上下左右的位置检测，是空则气数加一，颜色相同则
+        //遍历一遍列表，对每个棋子的上下左右的位置检测
         int i = 0;
         while (locations.size() > 0){
             Location loc = null;
@@ -201,27 +86,20 @@ public class ChessBoard {
                     case 3:t = p.getRight();break;
                     default:break;
                 }
-                if (t == null) {
+                if (t == null || Location.findInLocationList(done, t)) { //该方向没有位置(到边界)，或者已经遍历过
                     continue;
                 }
-                if (getChessFromBoard(t) == color) {
+                if (chessBoard.getChess(t) == color) { //该位置为同色，是棋串
                     locations.add(t);
-                } else if (getChessFromBoard(t) == Chess.EMPTY) {
+                } else if (chessBoard.getChess(t) == Chess.EMPTY) { //该位置为空，气数加一
                     liberty++;
                 }
+                //已经遍历过的位置存入已遍历位置列表
+                done.add(t);
             }
             i++;
         }
         return liberty;
-    }
-
-    /**
-     * 获取当前位置棋子
-     * @param p 棋子位置
-     * @return Chess
-     */
-    private Chess getChessFromBoard(Location p) {
-        return chessBoard[p.getX()][p.getY()];
     }
 
     /**
